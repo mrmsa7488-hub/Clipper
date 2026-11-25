@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Auto 9:16 Clip Previewer & Gallery Saver</title>
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --surface: #141822;
+      --surface-2: #1c2230;
+      --border: #283044;
+      --text: #f3f5f9;
+      --muted: #94a0b8;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    header h1 {
+      font-size: 1.12rem;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+    .badge {
+      font-size: 0.72rem;
+      background: rgba(99, 102, 241, 0.16);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 13px;
+      margin-bottom: 12px;
+    }
+
+    .upload-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px dashed #3b4663;
+      border-radius: 12px;
+      padding: 18px 12px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.015);
+      transition: 0.2s;
+    }
+    .upload-box:active {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: var(--accent);
+    }
+    .upload-box input {
+      display: none;
+    }
+    .upload-title {
+      font-weight: 600;
+      font-size: 0.94rem;
+      margin-bottom: 4px;
+    }
+    .upload-sub {
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 11px;
+    }
+    .field label {
+      display: block;
+      font-size: 0.73rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .field input {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 9px;
+      font-size: 0.88rem;
+      outline: none;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 11px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 0.84rem;
+    }
+    .toggle-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 11px;
+      padding: 11px 14px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: 0.15s;
+    }
+    .btn:active {
+      transform: scale(0.985);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      margin-top: 12px;
+    }
+    .btn-success {
+      background: var(--success);
+      color: #042117;
+      font-weight: 700;
+    }
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.16);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .btn-sm {
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      border-radius: 8px;
+    }
+
+    /* 9:16 Vertical Stage */
+    .stage-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .mode-pills {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+    .pill {
+      flex: 1;
+      text-align: center;
+      padding: 7px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 9px;
+      background: var(--surface-2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .pill.active {
+      background: rgba(99, 102, 241, 0.2);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .phone-frame {
+      position: relative;
+      width: 100%;
+      max-width: 315px;
+      aspect-ratio: 9 / 16;
+      background: #000;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 2px solid #2a3349;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+    }
+    #bgVideo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: blur(22px) brightness(0.5);
+      transform: scale(1.15);
+      pointer-events: none;
+    }
+    #mainVideo {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .phone-frame.crop-mode #bgVideo {
+      display: none;
+    }
+    .phone-frame.crop-mode #mainVideo {
+      object-fit: cover;
+    }
+
+    .hud-top {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 4;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+    }
+    .hud-pill {
+      background: rgba(0, 0, 0, 0.62);
+      backdrop-filter: blur(6px);
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    .hud-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 4;
+      padding: 24px 12px 12px;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.88));
+    }
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.73rem;
+      color: #e2e8f0;
+      margin-bottom: 5px;
+    }
+    input[type="range"].scrubber {
+      width: 100%;
+      accent-color: var(--accent);
+      height: 5px;
+      cursor: pointer;
+    }
+
+    .controls-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    /* Save Box */
+    .save-panel {
+      width: 100%;
+      margin-top: 11px;
+      padding-top: 11px;
+      border-top: 1px solid var(--border);
+    }
+    .progress-wrap {
+      display: none;
+      margin-top: 10px;
+      background: var(--surface-2);
+      border-radius: 10px;
+      padding: 10px;
+      border: 1px solid var(--border);
+    }
+    .bar-bg {
+      width: 100%;
+      height: 8px;
+      background: #0d1018;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 7px 0;
+    }
+    .bar-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--success);
+      transition: width 0.15s;
+    }
+    .saved-actions {
+      display: none;
+      margin-top: 10px;
+      gap: 8px;
+      flex-direction: column;
+    }
+    .saved-preview {
+      width: 100%;
+      max-height: 220px;
+      border-radius: 10px;
+      background: #000;
+      margin-top: 6px;
+    }
+
+    /* Clip List */
+    .clip-list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .clip-list {
+      max-height: 280px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .clip-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .clip-item.active {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.14);
+    }
+    .clip-meta {
+      font-size: 0.82rem;
+    }
+    .clip-meta span {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .status-msg {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: center;
+    }
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>9:16 Auto Clip & Gallery Saver</h1>
+      <span class="badge">30–50 Clips</span>
+    </header>
+
+    <!-- Upload & Cut Settings -->
+    <div class="card">
+      <label class="upload-box" id="uploadLabel">
+        <input type="file" id="fileInput" accept="video/*" />
+        <div class="upload-title" id="fileName">Tap to Select Video from Phone</div>
+        <div class="upload-sub">MP4, MKV, MOV supported • Local playback (Zero upload)</div>
+      </label>
+
+      <div class="grid-2">
+        <div class="field">
+          <label>Skip Intro (sec)</label>
+          <input type="number" id="introSec" value="90" min="0" max="600" />
+        </div>
+        <div class="field">
+          <label>Skip Credits (sec)</label>
+          <input type="number" id="creditsSec" value="180" min="0" max="900" />
+        </div>
+        <div class="field">
+          <label>Min Clip (sec)</label>
+          <input type="number" id="minClipSec" value="60" min="30" max="150" />
+        </div>
+        <div class="field">
+          <label>Max Clip (sec)</label>
+          <input type="number" id="maxClipSec" value="120" min="60" max="240" />
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <span>Auto-skip Songs / Music Blocks</span>
+        <input type="checkbox" id="skipSongsToggle" checked />
+      </div>
+
+      <button class="btn btn-primary" id="generateBtn" disabled>
+        Generate 30–50 Clips
+      </button>
+      <div class="status-msg" id="scanStatus">Select a video file to start</div>
+    </div>
+
+    <!-- 9:16 Vertical Preview & Gallery Saver -->
+    <div class="card hidden" id="playerCard">
+      <div class="stage-wrap">
+        <div class="mode-pills">
+          <div class="pill active" id="blurModeBtn">9:16 Blur Fit</div>
+          <div class="pill" id="cropModeBtn">9:16 Center Crop</div>
+        </div>
+
+        <div class="phone-frame" id="phoneFrame">
+          <video id="bgVideo" muted playsinline></video>
+          <video id="mainVideo" playsinline></video>
+
+          <div class="hud-top">
+            <span class="hud-pill" id="clipBadge">Clip 1 / 30</span>
+            <span class="hud-pill" id="clipDurBadge">01:30</span>
+          </div>
+
+          <div class="hud-bottom">
+            <div class="time-row">
+              <span id="curTimeLabel">00:00</span>
+              <span id="endTimeLabel">01:30</span>
+            </div>
+            <input type="range" id="scrubber" class="scrubber" min="0" max="100" value="0" step="0.1" />
+          </div>
+        </div>
+
+        <div class="controls-row">
+          <button class="btn btn-secondary btn-sm" id="prevBtn">Prev</button>
+          <button class="btn btn-secondary btn-sm" id="playPauseBtn">Pause</button>
+          <button class="btn btn-secondary btn-sm" id="muteBtn">Mute</button>
+          <button class="btn btn-secondary btn-sm" id="nextBtn">Next</button>
+        </div>
+
+        <!-- Save Current Clip Section -->
+        <div class="save-panel">
+          <button class="btn btn-success" id="saveClipBtn">
+            Save Current Clip to Gallery
+          </button>
+
+          <div class="progress-wrap" id="progressWrap">
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;">
+              <span id="renderLabel">Rendering 9:16 clip...</span>
+              <span id="renderPct">0%</span>
+            </div>
+            <div class="bar-bg"><div class="bar-fill" id="barFill"></div></div>
+            <button class="btn btn-danger btn-sm" id="cancelRenderBtn">Cancel</button>
+          </div>
+
+          <div class="saved-actions" id="savedActions">
+            <div style="font-size:0.8rem;color:#34d399;font-weight:600;" id="savedNotice">
+              Clip ready! Check your phone's Downloads / Gallery.
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <button class="btn btn-primary btn-sm" style="margin-top:0" id="downloadAgainBtn">Download File</button>
+              <button class="btn btn-secondary btn-sm" id="shareGalleryBtn">Share / Gallery</button>
+            </div>
+            <video id="renderedPreview" class="saved-preview" controls playsinline></video>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clips Queue -->
+    <div class="card hidden" id="listCard">
+      <div class="clip-list-header">
+        <strong style="font-size:0.9rem;" id="listTitle">Generated Clips</strong>
+        <button class="btn btn-secondary btn-sm" style="width:auto;" id="reshuffleBtn">Re-Shuffle</button>
+      </div>
+      <div class="clip-list" id="clipList"></div>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const fileNameEl = document.getElementById("fileName");
+    const generateBtn = document.getElementById("generateBtn");
+    const scanStatus = document.getElementById("scanStatus");
+    const playerCard = document.getElementById("playerCard");
+    const listCard = document.getElementById("listCard");
+    const mainVideo = document.getElementById("mainVideo");
+    const bgVideo = document.getElementById("bgVideo");
+    const phoneFrame = document.getElementById("phoneFrame");
+    const blurModeBtn = document.getElementById("blurModeBtn");
+    const cropModeBtn = document.getElementById("cropModeBtn");
+    const clipBadge = document.getElementById("clipBadge");
+    const clipDurBadge = document.getElementById("clipDurBadge");
+    const curTimeLabel = document.getElementById("curTimeLabel");
+    const endTimeLabel = document.getElementById("endTimeLabel");
+    const scrubber = document.getElementById("scrubber");
+    const prevBtn = document.getElementById("prevBtn");
+    const playPauseBtn = document.getElementById("playPauseBtn");
+    const muteBtn = document.getElementById("muteBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const clipListEl = document.getElementById("clipList");
+    const listTitle = document.getElementById("listTitle");
+    const reshuffleBtn = document.getElementById("reshuffleBtn");
+
+    const saveClipBtn = document.getElementById("saveClipBtn");
+    const progressWrap = document.getElementById("progressWrap");
+    const renderLabel = document.getElementById("renderLabel");
+    const renderPct = document.getElementById("renderPct");
+    const barFill = document.getElementById("barFill");
+    const cancelRenderBtn = document.getElementById("cancelRenderBtn");
+    const savedActions = document.getElementById("savedActions");
+    const downloadAgainBtn = document.getElementById("downloadAgainBtn");
+    const shareGalleryBtn = document.getElementById("shareGalleryBtn");
+    const renderedPreview = document.getElementById("renderedPreview");
+
+    let videoFile = null;
+    let videoUrl = "";
+    let videoDuration = 0;
+    let cleanIntervals = [];
+    let clips = [];
+    let currentIndex = 0;
+    let isCropMode = false;
+    let isRendering = false;
+    let abortRender = false;
+    let lastBlob = null;
+    let lastFilename = "clip_01.webm";
+
+    function fmtTime(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function fmtFull(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      return h > 0
+        ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+        : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    fileInput.addEventListener("change", (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      videoFile = f;
+      if (videoUrl) URL.revokeObjectURL(videoUrl);
+      videoUrl = URL.createObjectURL(f);
+      fileNameEl.textContent = f.name;
+      scanStatus.textContent = "Loading video metadata...";
+      generateBtn.disabled = true;
+
+      mainVideo.src = videoUrl;
+      bgVideo.src = videoUrl;
+
+      mainVideo.onloadedmetadata = () => {
+        videoDuration = mainVideo.duration;
+        scanStatus.textContent = `Loaded (${fmtFull(videoDuration)}). Ready to generate clips.`;
+        generateBtn.disabled = false;
+      };
+    });
+
+    async function detectCleanSegments() {
+      const intro = Math.min(Number(document.getElementById("introSec").value) || 0, videoDuration * 0.25);
+      const credits = Number(document.getElementById("creditsSec").value) || 0;
+      const skipSongs = document.getElementById("skipSongsToggle").checked;
+      const startBound = intro;
+      const endBound = Math.max(startBound + 60, videoDuration - credits);
+
+      // Guard mobile RAM: only decode full audio buffer if file <= 280MB
+      if (!skipSongs || !videoFile || videoFile.size > 280 * 1024 * 1024) {
+        return [{ start: startBound, end: endBound }];
+      }
+
+      try {
+        scanStatus.textContent = "Scanning audio to detect & cut songs...";
+        const arrayBuf = await videoFile.arrayBuffer();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const audioBuf = await audioCtx.decodeAudioData(arrayBuf);
+        const channel = audioBuf.getChannelData(0);
+        const sr = audioBuf.sampleRate;
+        const winSec = 5;
+        const step = sr * winSec;
+        const startWin = Math.floor(startBound / winSec);
+        const endWin = Math.min(Math.floor(endBound / winSec), Math.floor(channel.length / step));
+
+        const songFlags = [];
+        for (let w = startWin; w < endWin; w++) {
+          const offset = w * step;
+          const frameLen = Math.floor(sr * 0.05);
+          const numFrames = Math.floor(step / frameLen);
+          let energySum = 0;
+          let silentFrames = 0;
+
+          for (let f = 0; f < numFrames; f++) {
+            let sq = 0;
+            const fStart = offset + f * frameLen;
+            for (let i = 0; i < frameLen; i++) {
+              const v = channel[fStart + i] || 0;
+              sq += v * v;
+            }
+            const rms = Math.sqrt(sq / frameLen);
+            energySum += rms;
+            if (rms < 0.014) silentFrames++;
+          }
+
+          const avgRms = energySum / numFrames;
+          const pauseRatio = silentFrames / numFrames;
+          // Songs maintain high continuous energy with very few speech pauses
+          songFlags.push(avgRms > 0.038 && pauseRatio < 0.09);
+        }
+
+        await audioCtx.close();
+
+        // Cut music blocks >= 40s (8 windows)
+        const intervals = [];
+        let cur = startBound;
+        let idx = 0;
+        while (idx < songFlags.length) {
+          if (songFlags[idx]) {
+            let j = idx;
+            while (j < songFlags.length && songFlags[j]) j++;
+            if (j - idx >= 8) {
+              const songStart = startBound + idx * winSec;
+              const songEnd = startBound + j * winSec;
+              if (songStart - cur > 20) intervals.push({ start: cur, end: songStart });
+              cur = songEnd;
+            }
+            idx = j;
+          } else {
+            idx++;
+          }
+        }
+        if (endBound - cur > 20) intervals.push({ start: cur, end: endBound });
+        return intervals.length ? intervals : [{ start: startBound, end: endBound }];
+      } catch (err) {
+        return [{ start: startBound, end: endBound }];
+      }
+    }
+
+    function buildRandomClips() {
+      const userMin = Math.max(30, Number(document.getElementById("minClipSec").value) || 60);
+      const userMax = Math.max(userMin + 10, Number(document.getElementById("maxClipSec").value) || 120);
+      const totalUsable = cleanIntervals.reduce((acc, s) => acc + (s.end - s.start), 0);
+
+      const targetCount = Math.floor(Math.random() * 21) + 30; // 30 to 50
+      const idealLen = totalUsable / targetCount;
+      const effMin = Math.max(30, Math.min(userMin, idealLen * 0.85));
+      const effMax = Math.max(effMin + 10, Math.min(userMax, idealLen * 1.15));
+
+      const result = [];
+      for (const seg of cleanIntervals) {
+        let cursor = seg.start;
+        while (cursor < seg.end && result.length < 50) {
+          let dur = effMin + Math.random() * (effMax - effMin);
+          if (cursor + dur > seg.end) {
+            if (seg.end - cursor >= 35) dur = seg.end - cursor;
+            else break;
+          }
+          result.push({
+            id: result.length + 1,
+            start: cursor,
+            end: cursor + dur,
+            duration: dur
+          });
+          cursor += dur;
+        }
+      }
+      clips = result;
+      renderClipList();
+      if (clips.length > 0) loadClip(0, true);
+    }
+
+    generateBtn.addEventListener("click", async () => {
+      if (!videoUrl) return;
+      generateBtn.disabled = true;
+      cleanIntervals = await detectCleanSegments();
+      buildRandomClips();
+      generateBtn.disabled = false;
+      scanStatus.textContent = `Ready! ${clips.length} clips created (intro, credits & songs removed).`;
+      playerCard.classList.remove("hidden");
+      listCard.classList.remove("hidden");
+    });
+
+    reshuffleBtn.addEventListener("click", () => {
+      if (cleanIntervals.length) buildRandomClips();
+    });
+
+    function renderClipList() {
+      listTitle.textContent = `Generated Clips (${clips.length})`;
+      clipListEl.innerHTML = "";
+      clips.forEach((c, idx) => {
+        const div = document.createElement("div");
+        div.className = "clip-item" + (idx === currentIndex ? " active" : "");
+        div.innerHTML = `
+          <div class="clip-meta">
+            <strong>Clip #${String(c.id).padStart(2, "0")}</strong>
+            <span>${fmtFull(c.start)} → ${fmtFull(c.end)} (${Math.round(c.duration)}s)</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="width:auto;">Play</button>
+        `;
+        div.onclick = () => loadClip(idx, true);
+        clipListEl.appendChild(div);
+      });
+    }
+
+    function loadClip(idx, autoPlay = true) {
+      if (idx < 0 || idx >= clips.length) return;
+      currentIndex = idx;
+      const c = clips[idx];
+      clipBadge.textContent = `Clip ${c.id} / ${clips.length}`;
+      clipDurBadge.textContent = fmtTime(c.duration);
+      endTimeLabel.textContent = fmtTime(c.duration);
+      curTimeLabel.textContent = "00:00";
+      scrubber.value = 0;
+
+      mainVideo.currentTime = c.start;
+      bgVideo.currentTime = c.start;
+
+      document.querySelectorAll(".clip-item").forEach((el, i) => {
+        el.classList.toggle("active", i === idx);
+      });
+
+      if (autoPlay) {
+        mainVideo.play().catch(() => {});
+        bgVideo.play().catch(() => {});
+        playPauseBtn.textContent = "Pause";
+      }
+    }
+
+    mainVideo.addEventListener("timeupdate", () => {
+      if (isRendering || !clips.length) return;
+      const c = clips[currentIndex];
+      const elapsed = mainVideo.currentTime - c.start;
+      const pct = Math.min(100, Math.max(0, (elapsed / c.duration) * 100));
+      scrubber.value = pct;
+      curTimeLabel.textContent = fmtTime(elapsed);
+
+      if (Math.abs(bgVideo.currentTime - mainVideo.currentTime) > 0.35) {
+        bgVideo.currentTime = mainVideo.currentTime;
+      }
+
+      if (mainVideo.currentTime >= c.end) {
+        if (currentIndex + 1 < clips.length) {
+          loadClip(currentIndex + 1, true);
+        } else {
+          mainVideo.pause();
+          bgVideo.pause();
+          playPauseBtn.textContent = "Play";
+        }
+      }
+    });
+
+    scrubber.addEventListener("input", () => {
+      if (!clips.length) return;
+      const c = clips[currentIndex];
+      const target = c.start + (Number(scrubber.value) / 100) * c.duration;
+      mainVideo.currentTime = target;
+      bgVideo.currentTime = target;
+    });
+
+    playPauseBtn.onclick = () => {
+      if (mainVideo.paused) {
+        mainVideo.play();
+        bgVideo.play();
+        playPauseBtn.textContent = "Pause";
+      } else {
+        mainVideo.pause();
+        bgVideo.pause();
+        playPauseBtn.textContent = "Play";
+      }
+    };
+
+    muteBtn.onclick = () => {
+      mainVideo.muted = !mainVideo.muted;
+      muteBtn.textContent = mainVideo.muted ? "Unmute" : "Mute";
+    };
+
+    prevBtn.onclick = () => loadClip(currentIndex - 1, true);
+    nextBtn.onclick = () => loadClip(currentIndex + 1, true);
+
+    blurModeBtn.onclick = () => {
+      isCropMode = false;
+      phoneFrame.classList.remove("crop-mode");
+      blurModeBtn.classList.add("active");
+      cropModeBtn.classList.remove("active");
+    };
+
+    cropModeBtn.onclick = () => {
+      isCropMode = true;
+      phoneFrame.classList.add("crop-mode");
+      cropModeBtn.classList.add("active");
+      blurModeBtn.classList.remove("active");
+    };
+
+    function triggerBrowserDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 4000);
+    }
+
+    // Render & Save Current 9:16 Clip
+    saveClipBtn.onclick = async () => {
+      if (!clips.length || isRendering) return;
+      const clip = clips[currentIndex];
+      isRendering = true;
+      abortRender = false;
+      savedActions.style.display = "none";
+      progressWrap.style.display = "block";
+      barFill.style.width = "0%";
+      renderPct.textContent = "0%";
+      renderLabel.textContent = `Saving Clip #${clip.id}...`;
+
+      const offVideo = document.createElement("video");
+      offVideo.src = videoUrl;
+      offVideo.crossOrigin = "anonymous";
+      offVideo.playsInline = true;
+      offVideo.muted = false;
+
+      await new Promise((res) => {
+        offVideo.onloadedmetadata = res;
+      });
+      offVideo.currentTime = clip.start;
+      await new Promise((res) => {
+        offVideo.onseeked = res;
+      });
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 720;
+      canvas.height = 1280;
+      const ctx = canvas.getContext("2d");
+
+      const stream = canvas.captureStream(30);
+      try {
+        const vStream = offVideo.captureStream ? offVideo.captureStream() : offVideo.mozCaptureStream();
+        vStream.getAudioTracks().forEach((t) => stream.addTrack(t));
+      } catch (e) {}
+
+      const mime = MediaRecorder.isTypeSupported("video/mp4;codecs=avc1")
+        ? "video/mp4"
+        : MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+        ? "video/webm;codecs=vp9,opus"
+        : "video/webm";
+
+      const ext = mime.includes("mp4") ? "mp4" : "webm";
+      lastFilename = `clip_${String(clip.id).padStart(2, "0")}_9x16.${ext}`;
+
+      const chunks = [];
+      const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 3500000 });
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+
+      const finishPromise = new Promise((resolve) => {
+        recorder.onstop = resolve;
+      });
+
+      mainVideo.pause();
+      bgVideo.pause();
+      recorder.start(250);
+      await offVideo.play();
+
+      const drawFrame = () => {
+        if (abortRender || offVideo.currentTime >= clip.end || offVideo.ended) {
+          offVideo.pause();
+          if (recorder.state !== "inactive") recorder.stop();
+          return;
+        }
+
+        const vw = offVideo.videoWidth || 1280;
+        const vh = offVideo.videoHeight || 720;
+        const targetRatio = 720 / 1280;
+        const srcRatio = vw / vh;
+
+        if (isCropMode) {
+          let sx = 0, sy = 0, sw = vw, sh = vh;
+          if (srcRatio > targetRatio) {
+            sw = vh * targetRatio;
+            sx = (vw - sw) / 2;
+          } else {
+            sh = vw / targetRatio;
+            sy = (vh - sh) / 2;
+          }
+          ctx.drawImage(offVideo, sx, sy, sw, sh, 0, 0, 720, 1280);
+        } else {
+          // Blurred 9:16 fill background
+          ctx.save();
+          ctx.filter = "blur(24px) brightness(0.45)";
+          const bgScale = Math.max(720 / vw, 1280 / vh);
+          const bw = vw * bgScale;
+          const bh = vh * bgScale;
+          ctx.drawImage(offVideo, (720 - bw) / 2, (1280 - bh) / 2, bw, bh);
+          ctx.restore();
+
+          // Centered foreground video
+          const fgScale = Math.min(720 / vw, 1280 / vh);
+          const fw = vw * fgScale;
+          const fh = vh * fgScale;
+          ctx.drawImage(offVideo, (720 - fw) / 2, (1280 - fh) / 2, fw, fh);
+        }
+
+        const pct = Math.min(100, Math.round(((offVideo.currentTime - clip.start) / clip.duration) * 100));
+        barFill.style.width = pct + "%";
+        renderPct.textContent = pct + "%";
+        requestAnimationFrame(drawFrame);
+      };
+
+      requestAnimationFrame(drawFrame);
+      await finishPromise;
+      isRendering = false;
+      progressWrap.style.display = "none";
+
+      if (abortRender) return;
+
+      lastBlob = new Blob(chunks, { type: mime });
+      renderedPreview.src = URL.createObjectURL(lastBlob);
+      savedActions.style.display = "flex";
+      triggerBrowserDownload(lastBlob, lastFilename);
+    };
+
+    cancelRenderBtn.onclick = () => {
+      abortRender = true;
+      isRendering = false;
+      progressWrap.style.display = "none";
+    };
+
+    downloadAgainBtn.onclick = () => {
+      if (lastBlob) triggerBrowserDownload(lastBlob, lastFilename);
+    };
+
+    shareGalleryBtn.onclick = async () => {
+      if (!lastBlob) return;
+      const file = new File([lastBlob], lastFilename, { type: lastBlob.type });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: lastFilename });
+        } catch (e) {}
+      } else {
+        triggerBrowserDownload(lastBlob, lastFilename);
+      }
+    };
+  </script>
+</body>
+</html>
